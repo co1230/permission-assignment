@@ -67,10 +67,26 @@ Windows 下也可以直接双击 `run_v1.bat` / `run_v2.bat`。
 
 V2 首次使用：先用小张登录 → 「我的密钥包」生成密钥对 → 私钥包（口令加密）自动下载到本机 → 之后加密/解密都自动使用这对密钥。
 
+## 上传的文件存在哪
+
+**只存密文，原始文件从不落盘。**
+
+| 内容 | V1 | V2 |
+| --- | --- | --- |
+| 密文 | `v1_server_key/data/blobs/<随机ID>.enc` | `v2_zero_knowledge/data/blobs/<随机ID>.enc` |
+| 元数据 / 密钥 | `v1_server_key/data/v1.db`（含 `key_b64`） | `v2_zero_knowledge/data/v2.db`（只有公钥 + `wrapped_key_b64`） |
+
+文件名是随机 ID（磁盘上看不出原始名），原始文件名只记在数据库；密文比原文多 16 字节 GCM 认证标签；`data/` 已加入 `.gitignore`，不进仓库也不进交付包，删掉即清空（重启自动重建）。详见 [docs/验收清单.md](docs/验收清单.md#一上传的文件存在哪里)。
+
 ## 自动化测试
 
 ```bash
-# 先启动两个服务，再运行：
+# 一键验收（需先启动两个服务）
+python tests/acceptance_v1.py    # V1：8 种格式往返 + 403 + 搭建者读库解密
+node   tests/acceptance_v2.mjs   # V2：8 种格式往返 + 403 + 501 + 无机密字段
+# Windows 也可双击 tests/run_acceptance.bat
+
+# 更细的边界测试
 python tests/e2e_v1.py     # 9 项：权限拒绝 / 加解密还原 / 搭建者读库离线解密(V1缺陷)
 node tests/e2e_v2.mjs      # 10 项：信封加密全链路 / 服务端501 / 无机密字段 / 防篡改
 ```
@@ -87,6 +103,7 @@ V2 测试直接加载前端真实的 `crypto-core.js`（Node 内置 Web Crypto �
 
 - [docs/技术说明.md](docs/技术说明.md) —— 威胁模型、算法细节、为什么搭建者解不开
 - [docs/演示脚本.md](docs/演示脚本.md) —— 10 分钟现场演示流程
+- [docs/验收清单.md](docs/验收清单.md) —— 存储位置、一键验收、手动验收 30 项清单
 
 ## 截图
 
