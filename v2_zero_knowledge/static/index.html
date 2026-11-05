@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>V2 目标版 · 服务端无法解密的文件加密服务</title>
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<!-- ============ 登录 ============ -->
+<section id="login-view" class="login-wrap">
+  <div class="login-card">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3Z"/>
+          <path d="M9 12.5l2 2 4-4.5"/>
+        </svg>
+      </span>
+      <div>
+        <h1>文件加密与权限隔离</h1>
+        <p class="sub">V2 目标版 · 服务端不持有私钥，搭建者也无法解密</p>
+      </div>
+    </div>
+
+    <div class="role-picker">
+      <button class="role-btn" data-user="xiaokong" data-pass="xiaokong123">
+        <span class="role-avatar avatar-k">孔</span>
+        <span class="role-text"><strong>小孔</strong><small>普通用户 · 只能加密</small></span>
+      </button>
+      <button class="role-btn" data-user="xiaozhang" data-pass="xiaozhang123">
+        <span class="role-avatar avatar-z">张</span>
+        <span class="role-text"><strong>小张</strong><small>领导 · 持有私钥</small></span>
+      </button>
+    </div>
+
+    <form id="login-form" class="login-form" autocomplete="off">
+      <label>
+        <span>账号</span>
+        <input id="login-user" type="text" value="xiaokong" spellcheck="false" />
+      </label>
+      <label>
+        <span>密码</span>
+        <input id="login-pass" type="password" value="xiaokong123" />
+      </label>
+      <button class="btn btn-primary btn-block" type="submit">进入工作台</button>
+      <p class="hint">演示账号：xiaokong / xiaokong123 &nbsp;·&nbsp; xiaozhang / xiaozhang123</p>
+    </form>
+    <p id="login-error" class="error-text"></p>
+  </div>
+</section>
+
+<!-- ============ 主界面 ============ -->
+<section id="app-view" class="app hidden">
+  <header class="topbar">
+    <div class="brand small">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9">
+          <path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3Z"/>
+          <path d="M9 12.5l2 2 4-4.5"/>
+        </svg>
+      </span>
+      <div>
+        <strong>文件加密与权限隔离</strong>
+        <span class="version-chip v2">V2 · 零知识（目标版）</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-chip">
+        <span id="user-avatar" class="role-avatar avatar-k">孔</span>
+        <span><strong id="user-name">小孔</strong><small id="user-title">普通用户</small></span>
+      </div>
+      <button id="logout-btn" class="btn btn-ghost">退出</button>
+    </div>
+  </header>
+
+  <div class="banner banner-ok">
+    <strong>密钥从不经过服务器。</strong>
+    文件在你的浏览器里用一次性 AES-256 密钥加密，这把密钥再用小张的 RSA 公钥封装。
+    服务端只存密文和封装结果，没有任何私钥——<strong>即使搭建者拿到整台服务器和数据库，也解不开</strong>。
+  </div>
+
+  <main class="layout">
+    <!-- 上传 -->
+    <section class="card">
+      <div class="card-head">
+        <h2>上传并加密</h2>
+        <span class="card-tag">浏览器本地加密</span>
+      </div>
+
+      <div id="key-missing" class="inline-alert hidden">
+        还没有可用的公钥：请先用 <strong>小张</strong> 登录，在右侧「我的密钥包」里生成一对密钥。
+        没有公钥就无法加密，这是 V2 的设计前提。
+      </div>
+
+      <div id="dropzone" class="dropzone">
+        <input id="file-input" type="file" hidden multiple />
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+        </svg>
+        <p><strong>点击选择文件</strong>，或把文件拖到这里</p>
+        <p class="tiny">文本 / Markdown / Office / PDF / 代码 / 音频 / 视频等任意二进制文件 · 单文件 ≤ 200MB</p>
+      </div>
+
+      <div class="form-row">
+        <label class="field">
+          <span>文件类型</span>
+          <select id="category-select">
+            <option value="auto">自动识别</option>
+            <option>文档</option><option>表格</option><option>代码</option>
+            <option>音频</option><option>视频</option><option>图片</option>
+            <option>压缩包</option><option>其他</option>
+          </select>
+        </label>
+        <div class="field grow">
+          <span>加密算法</span>
+          <div class="static-value">AES-256-GCM + RSA-OAEP-256</div>
+        </div>
+      </div>
+
+      <div id="upload-queue" class="queue"></div>
+      <p id="upload-msg" class="msg"></p>
+    </section>
+
+    <!-- 密钥与权限 -->
+    <section class="card">
+      <div class="card-head">
+        <h2>密钥与权限</h2>
+        <span id="pubkey-state" class="card-tag">检查中…</span>
+      </div>
+
+      <div class="keyinfo">
+        <div class="keyinfo-row">
+          <span class="k">公钥指纹</span>
+          <span id="fingerprint" class="v mono">—</span>
+        </div>
+        <div class="keyinfo-row">
+          <span class="k">公钥持有人</span>
+          <span id="key-owner" class="v">—</span>
+        </div>
+        <div class="keyinfo-row">
+          <span class="k">服务端是否持私钥</span>
+          <span class="v no">否</span>
+        </div>
+      </div>
+
+      <!-- 小张专用 -->
+      <div id="owner-panel" class="owner-panel hidden">
+        <ol class="steps">
+          <li>先生成密钥对：私钥会被你的口令加密成「密钥包文件」下载到本机，<b>不会上传</b>；只有公钥会发布到服务器。</li>
+          <li>之后每次解密，选一次密钥包 + 输入口令，解密全在你的浏览器里完成。</li>
+        </ol>
+        <div class="owner-actions">
+          <button id="gen-keypair-btn" class="btn btn-primary btn-sm">生成密钥对并下载密钥包</button>
+          <button id="rotate-keypair-btn" class="btn btn-ghost btn-sm">重新生成（旧文件将无法解密）</button>
+        </div>
+      </div>
+
+      <table class="matrix">
+        <thead><tr><th>能力</th><th>小孔</th><th>小张</th><th>搭建者</th></tr></thead>
+        <tbody>
+          <tr><td>上传 / 加密</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>解密</td><td class="no">✕</td><td class="yes">✓</td><td class="no">✕</td></tr>
+          <tr><td>拿到解密密钥</td><td class="no">✕</td><td class="yes">✓</td><td class="no">✕</td></tr>
+        </tbody>
+      </table>
+      <p class="tiny note">
+        小张的私钥只存在他自己的电脑上；服务器只有公钥。所以搭建者即便拥有 root、数据库、磁盘镜像，也没有可用的解密材料。
+      </p>
+    </section>
+  </main>
+
+  <!-- 文件列表 -->
+  <section class="card wide">
+    <div class="card-head">
+      <h2>文件库</h2>
+      <div class="head-actions">
+        <span id="file-count" class="card-tag">0 个文件</span>
+        <button id="refresh-btn" class="btn btn-ghost btn-sm">刷新</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="files">
+        <thead>
+          <tr>
+            <th>文件名</th><th>类型</th><th>原始大小</th><th>密文大小</th>
+            <th>封装密钥</th><th>上传者</th><th>时间</th><th class="right">操作</th>
+          </tr>
+        </thead>
+        <tbody id="file-rows"></tbody>
+      </table>
+      <p id="empty-tip" class="empty">还没有文件，先上传一个试试。</p>
+    </div>
+  </section>
+
+  <!-- 小张：私钥解锁 + 本地解密 -->
+  <section id="admin-zone" class="layout hidden">
+    <section class="card">
+      <div class="card-head">
+        <h2>我的私钥（只在本机）</h2>
+        <span id="key-state" class="card-tag">未解锁</span>
+      </div>
+      <p class="tiny">选择之前下载的密钥包文件，输入口令。私钥只在页面内存里，刷新即消失，不会发送到服务器。</p>
+      <div class="form-stack">
+        <label class="field">
+          <span>密钥包文件（.key.json）</span>
+          <input id="privkey-file" type="file" accept=".json,application/json" />
+        </label>
+        <label class="field">
+          <span>口令</span>
+          <input id="privkey-pass" type="password" placeholder="生成密钥包时设置的口令" />
+        </label>
+        <button id="unlock-btn" class="btn btn-primary btn-sm">解锁私钥</button>
+      </div>
+      <p id="unlock-msg" class="msg"></p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>服务器自证：它解不开</h2>
+        <span class="card-tag danger">现场验证</span>
+      </div>
+      <p class="tiny">点一下，让服务端尝试解密任意一个文件。它必须失败——因为它没有私钥。</p>
+      <div class="proof-actions">
+        <button id="proof-btn" class="btn btn-sm btn-danger">让服务端试着解密最新文件</button>
+        <button id="schema-btn" class="btn btn-sm btn-ghost">查看数据库表结构</button>
+      </div>
+      <pre id="proof-output" class="proof-out">等待验证…</pre>
+    </section>
+  </section>
+
+  <!-- 离线解密 -->
+  <section id="offline-zone" class="card wide hidden">
+    <div class="card-head">
+      <h2>离线解密（不依赖服务器）</h2>
+      <span class="card-tag">可断网演示</span>
+    </div>
+    <p class="tiny">
+      拿到 <code>.enc</code> 密文、<code>.envelope.json</code> 封装信息、自己的 <code>.key.json</code> 密钥包和口令，就可以在任意浏览器里还原原文。
+      这一栏用来证明：解密能力完全在密钥持有者手里。
+    </p>
+    <div class="offline-grid">
+      <label class="field"><span>1. 密文 .enc</span><input id="off-cipher" type="file" /></label>
+      <label class="field"><span>2. 封装信息 .envelope.json</span><input id="off-envelope" type="file" accept=".json,application/json" /></label>
+      <label class="field"><span>3. 密钥包 .key.json</span><input id="off-privkey" type="file" accept=".json,application/json" /></label>
+      <label class="field"><span>4. 口令</span><input id="off-pass" type="password" /></label>
+    </div>
+    <div class="offline-actions">
+      <button id="offline-btn" class="btn btn-primary btn-sm">在本地解密并下载</button>
+      <span id="offline-msg" class="msg"></span>
+    </div>
+  </section>
+
+  <!-- 管理端：审计 -->
+  <section id="audit-zone" class="card wide hidden">
+    <div class="card-head">
+      <h2>审计日志</h2>
+      <span class="card-tag">最近 30 条</span>
+    </div>
+    <div id="audit-list" class="audit"></div>
+  </section>
+
+  <div id="toast" class="toast"></div>
+</section>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

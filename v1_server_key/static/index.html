@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>V1 对照版 · 服务端持钥的文件加密服务</title>
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<!-- ============ 登录 ============ -->
+<section id="login-view" class="login-wrap">
+  <div class="login-card">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+        </svg>
+      </span>
+      <div>
+        <h1>文件加密与权限隔离</h1>
+        <p class="sub">V1 对照版 · 密钥由服务端生成并入库</p>
+      </div>
+    </div>
+
+    <div class="role-picker">
+      <button class="role-btn" data-user="xiaokong" data-pass="xiaokong123">
+        <span class="role-avatar avatar-k">孔</span>
+        <span class="role-text"><strong>小孔</strong><small>普通用户 · 只能加密</small></span>
+      </button>
+      <button class="role-btn" data-user="xiaozhang" data-pass="xiaozhang123">
+        <span class="role-avatar avatar-z">张</span>
+        <span class="role-text"><strong>小张</strong><small>领导 · 可以解密</small></span>
+      </button>
+    </div>
+
+    <form id="login-form" class="login-form" autocomplete="off">
+      <label>
+        <span>账号</span>
+        <input id="login-user" type="text" value="xiaokong" spellcheck="false" />
+      </label>
+      <label>
+        <span>密码</span>
+        <input id="login-pass" type="password" value="xiaokong123" />
+      </label>
+      <button class="btn btn-primary btn-block" type="submit">进入工作台</button>
+      <p class="hint">演示账号：xiaokong / xiaokong123 &nbsp;·&nbsp; xiaozhang / xiaozhang123</p>
+    </form>
+    <p id="login-error" class="error-text"></p>
+  </div>
+</section>
+
+<!-- ============ 主界面 ============ -->
+<section id="app-view" class="app hidden">
+  <header class="topbar">
+    <div class="brand small">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9">
+          <rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+        </svg>
+      </span>
+      <div>
+        <strong>文件加密与权限隔离</strong>
+        <span class="version-chip v1">V1 · 服务端持钥（对照版）</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-chip">
+        <span id="user-avatar" class="role-avatar avatar-k">孔</span>
+        <span><strong id="user-name">小孔</strong><small id="user-title">普通用户</small></span>
+      </div>
+      <button id="logout-btn" class="btn btn-ghost">退出</button>
+    </div>
+  </header>
+
+  <div class="banner banner-warn">
+    <strong>本版本的定位：对照组。</strong>
+    密钥由服务端生成并明文写进 SQLite 的 <code>files.key_b64</code>，因此服务端（包括搭建者、运维、拿到数据库文件的人）随时可以解密。
+    这正是 V2 要解决的缺陷。
+  </div>
+
+  <main class="layout">
+    <!-- 上传 -->
+    <section class="card">
+      <div class="card-head">
+        <h2>上传并加密</h2>
+        <span class="card-tag">所有登录用户可用</span>
+      </div>
+
+      <div id="dropzone" class="dropzone">
+        <input id="file-input" type="file" hidden multiple />
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+        </svg>
+        <p><strong>点击选择文件</strong>，或把文件拖到这里</p>
+        <p class="tiny">支持文本、Markdown、Office、PDF、代码、图片、音频、视频等任意二进制文件 · 单文件 ≤ 200MB</p>
+      </div>
+
+      <div class="form-row">
+        <label class="field">
+          <span>文件类型</span>
+          <select id="category-select">
+            <option value="auto">自动识别</option>
+            <option>文档</option><option>表格</option><option>代码</option>
+            <option>音频</option><option>视频</option><option>图片</option>
+            <option>压缩包</option><option>其他</option>
+          </select>
+        </label>
+        <div class="field grow">
+          <span>加密算法</span>
+          <div class="static-value">AES-256-GCM（服务端生成密钥）</div>
+        </div>
+      </div>
+
+      <div id="upload-queue" class="queue"></div>
+      <p id="upload-msg" class="msg"></p>
+    </section>
+
+    <!-- 权限矩阵 -->
+    <section class="card">
+      <div class="card-head">
+        <h2>权限模型</h2>
+        <span class="card-tag">角色隔离</span>
+      </div>
+      <table class="matrix">
+        <thead>
+          <tr><th>能力</th><th>小孔</th><th>小张</th><th>搭建者</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>上传 / 加密</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>查看密文</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>解密文件</td><td class="no">✕</td><td class="yes">✓</td><td class="no">✓</td></tr>
+          <tr><td>读取密钥</td><td class="no">✕</td><td class="yes">✓</td><td class="no">✓</td></tr>
+        </tbody>
+      </table>
+      <p class="tiny note">
+        表格最后一行是 V1 的硬伤：搭建者虽然界面上没有权限，但只要直接打开 <code>data/v1.db</code> 里的 <code>key_b64</code>，
+        就能把密文全部解开。加密保护的是"传输和存储被偷看"，而不是"防住服务端自己"。
+      </p>
+    </section>
+  </main>
+
+  <!-- 文件列表 -->
+  <section class="card wide">
+    <div class="card-head">
+      <h2>文件库</h2>
+      <div class="head-actions">
+        <span id="file-count" class="card-tag">0 个文件</span>
+        <button id="refresh-btn" class="btn btn-ghost btn-sm">刷新</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="files">
+        <thead>
+          <tr>
+            <th>文件名</th><th>类型</th><th>原始大小</th><th>密文大小</th>
+            <th>上传者</th><th>时间</th><th class="right">操作</th>
+          </tr>
+        </thead>
+        <tbody id="file-rows"></tbody>
+      </table>
+      <p id="empty-tip" class="empty">还没有文件，先上传一个试试。</p>
+    </div>
+  </section>
+
+  <!-- 管理端：密钥库 + 审计 -->
+  <section id="admin-zone" class="layout hidden">
+    <section class="card">
+      <div class="card-head">
+        <h2>服务端密钥库</h2>
+        <span class="card-tag danger">仅小张可见</span>
+      </div>
+      <p class="tiny">
+        下面是数据库里真实存在的密钥。任何人拿到这个 SQLite 文件（或备份、或服务器磁盘），都能离线解密全部密文。
+      </p>
+      <div id="vault-list" class="vault"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>审计日志</h2>
+        <span class="card-tag">最近 30 条</span>
+      </div>
+      <div id="audit-list" class="audit"></div>
+    </section>
+  </section>
+
+  <div id="toast" class="toast"></div>
+</section>
+
+<script src="./app.js"></script>
+</body>
+</html>

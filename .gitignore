@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 运行时数据（数据库 / 密文），不入库
+v1_server_key/data/
+v2_zero_knowledge/data/
+*.enc
+
+# 私钥包 / 会话令牌等本机敏感文件，绝不入库
+*.key.json
+*.envelope.json
+tests/.tokens.json
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

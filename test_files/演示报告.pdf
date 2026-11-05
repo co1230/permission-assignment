@@ -1,0 +1,72 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 830 >>
+stream
+BT
+72 780 Td
+14 TL
+/F2 20 Tf
+(File Encryption Demo Report) Tj T*
+/F1 11 Tf
+(Generated for the permission-isolation demo.) Tj T*
+/F1 11 Tf
+(This PDF is a binary test sample: if encryption) Tj T*
+/F1 11 Tf
+(corrupts a single byte, the file will not open.) Tj T*
+/F1 11 Tf
+() Tj T*
+/F2 13 Tf
+(Roles) Tj T*
+/F1 11 Tf
+(Xiao Kong  - encrypt only, no decryption rights) Tj T*
+/F1 11 Tf
+(Xiao Zhang - holds the private key, can decrypt) Tj T*
+/F1 11 Tf
+(Builder    - owns the server, cannot decrypt \(V2\)) Tj T*
+/F1 11 Tf
+() Tj T*
+/F2 13 Tf
+(Algorithms) Tj T*
+/F1 11 Tf
+(AES-256-GCM for file content) Tj T*
+/F1 11 Tf
+(RSA-OAEP-2048 \(SHA-256\) for key wrapping) Tj T*
+/F1 11 Tf
+(PBKDF2-SHA256 250000 iterations for the key package) Tj T*
+/F1 11 Tf
+() Tj T*
+/F1 10 Tf
+(SHA-256 of the original file should match after decryption.) Tj T*
+ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000257 00000 n 
+0000000354 00000 n 
+0000000456 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+1337
+%%EOF
