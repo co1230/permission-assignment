@@ -18,3 +18,7 @@ tests/.tokens.json
 Thumbs.db
 .idea/
 .vscode/
+
+# release 目录只保留交付压缩包本身（解压出来的副本不入库）
+/release/*
+!/release/*.zip
